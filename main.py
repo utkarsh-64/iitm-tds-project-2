@@ -19,7 +19,7 @@ app = FastAPI(
 )
 
 # Create a single, reusable instance of our agent
-data_agent = agent.DataAnalysisAgent()
+data_agent = orchestrator_agent.OrchestratorAgent()
 
 @app.get("/", tags=["Health Check"])
 async def read_root():
