@@ -119,7 +119,7 @@ Example Plan Structure:
 }
 """
         response = self.llm_client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
