@@ -16,8 +16,8 @@ class OrchestratorAgent:
 
     def __init__(self):
         """Initializes the Orchestrator and the OpenAI client."""
-        api_key = os.getenv("OPENAI_API_KEY")
-        base_url = os.getenv("OPENAI_BASE_URL")
+        api_key = os.getenv("AIPROXY_TOKEN")
+        base_url = "https://aiproxy.sanand.workers.dev/openai/"
         if not api_key or not base_url:
             raise ValueError("API key or base URL not found in environment variables.")
         
