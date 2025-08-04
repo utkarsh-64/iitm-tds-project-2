@@ -11,5 +11,4 @@ duckdb
 python-multipart
 matplotlib
 seaborn
-pandas
 numpy
