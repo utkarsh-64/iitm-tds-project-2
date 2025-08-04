@@ -2,19 +2,24 @@
 # API server and main entry point for the application.
 
 import os
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Body
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
-import orchestrator_agent# Import the core agent logic
+from pydantic import BaseModel
+import orchestrator_agent # Import the core agent logic
 
 # Load environment variables from a .env file
 load_dotenv()
 
+# Define the request body model for JSON requests
+class TaskPayload(BaseModel):
+    task_text: str
+
 # Initialize the FastAPI application
 app = FastAPI(
     title="Data Analysis Agent API",
-    description="A simplified API that uses an LLM to analyze and visualize data.",
-    version="1.1.0"
+    description="A multi-agent API that analyzes and visualizes data.",
+    version="1.2.0"
 )
 
 # Create a single, reusable instance of our agent
@@ -26,30 +31,27 @@ async def read_root():
     return {"status": "ok", "message": "Data Analysis Agent is running."}
 
 @app.post("/api/", tags=["Core Functionality"])
-async def analyze_data(task_file: UploadFile = File(None), task_text: str = Form(None)):
+async def analyze_data(payload: TaskPayload = Body(None), task_file: UploadFile = File(None)):
     """
     The main endpoint that accepts a data analysis task.
-
-    Submit a task via file upload or a text field.
-    - curl with file: `curl -X POST http://127.0.0.1:8000/api/ -F "task_file=@question.txt"`
-    - curl with text: `curl -X POST http://127.0.0.1:8000/api/ -F "task_text=Your question"`
+    It can accept a JSON payload or a file upload.
     """
-    if not task_file and not task_text:
+    prompt = None
+    if payload and payload.task_text:
+        prompt = payload.task_text
+        print("Received task from JSON payload.")
+    elif task_file:
+        prompt_bytes = await task_file.read()
+        prompt = prompt_bytes.decode('utf-8')
+        print(f"Received task from file: {task_file.filename}")
+
+    if not prompt:
         raise HTTPException(
             status_code=400,
-            detail="No task provided. Please submit via 'task_file' or 'task_text'."
+            detail="No task provided. Please submit a JSON payload with 'task_text' or use 'task_file'."
         )
 
     try:
-        # Determine the source of the prompt
-        if task_file:
-            prompt_bytes = await task_file.read()
-            prompt = prompt_bytes.decode('utf-8')
-            print(f"Received task from file: {task_file.filename}")
-        else:
-            prompt = task_text
-            print("Received task from text form.")
-
         # Execute the task using the agent instance
         print("--- Handing off task to agent ---")
         result = await data_agent.run(prompt=prompt)
@@ -63,7 +65,3 @@ async def analyze_data(task_file: UploadFile = File(None), task_text: str = Form
         print(f"An unexpected error occurred in the main endpoint: {e}")
         # Return a user-friendly error message
         raise HTTPException(status_code=500, detail=f"An internal server error occurred: {str(e)}")
-
-# To run this server:
-# 1. Make sure you have a .env file with your API keys.
-# 2. Run `uvicorn main:app --reload` in your terminal.
